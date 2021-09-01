@@ -111,21 +111,20 @@ passport.use('twitch', new OAuth2Strategy({
   }
 ));
 
-//BOT ONLY REMOVE FROM DEPLOYMENT
-app.get('/auth/twitch/bot', cors(), passport.authenticate('twitch', {
-  scope: [
-    "user_read",
-    "user:edit:follows",
-    "user:read:follows",
-    "chat:read",
-    "chat:edit",
-    "channel:moderate",
-    "whispers:read",
-    "whispers:edit"
-  ]
-}));
+// This is the way to authorize the bot application on the bot account
+// app.get('/auth/twitch/bot', cors(), passport.authenticate('twitch', {
+//   scope: [
+//     "user_read",
+//     "user:edit:follows",
+//     "user:read:follows",
+//     "chat:read",
+//     "chat:edit",
+//     "channel:moderate",
+//     "whispers:read",
+//     "whispers:edit"
+//   ]
+// }));
 
-//Creators
 app.get('/auth/twitch', passport.authenticate('twitch', { scope: [] }));
 
 app.get('/auth/twitch/creator', (req, res, next) => {
@@ -138,19 +137,14 @@ app.get('/auth/twitch/creator', (req, res, next) => {
     const set_alerts = bot_cache.set(bot_id, JSON.stringify(rally_data));
     if (set_alerts) {
       next()
-    } else {
-
     }
-
   }
-
 })
 
 app.get('/auth/twitch/creator', passport.authenticate('twitch', { scope: ["channel:moderate"] }))
 
 app.get("/user-complete", async function (req, res, next) {
   console.log("user-complete");
-  //try catch
   const bot_id = req.signedCookies.bot_id;
   const bot_id_2 = req.signedCookies.bot_id_2;
 
@@ -158,23 +152,17 @@ app.get("/user-complete", async function (req, res, next) {
     const rally_data = JSON.parse(bot_cache.get(bot_id));
     const twitch_data = JSON.parse(bot_cache.get(bot_id_2));
     if (rally_data && twitch_data) {
-
       try {
         insertEntity(rally_data, twitch_data);
         if (rally_data.is_creator) {
           twitch_channels.push(twitch_data.login_name);
         }
-
-
-        //client.addChannel(twitch_data.login_name);
-
         res.redirect('https://www.twitch.tv/rallytwitchbot');
       } catch (err) {
-        throw err;
+        console.log(err);
       }
     }
   }
-
   console.log("user-complete-end");
   res.redirect('./public/cancelled');
 })
@@ -182,12 +170,10 @@ app.get("/user-complete", async function (req, res, next) {
 
 
 app.get("/user", function (req, res, next) {
-
   res.cookie("bot_id_2", req.user.data[0].id, { signed: true });
   res.sendFile('public/user.html', { root: __dirname });
-
-  //res.sendFile('public/cancelled.html', {root: __dirname });
 })
+
 app.get('/auth/twitch/code', passport.authenticate('twitch', { successRedirect: '/user', failureRedirect: '/cancelled' }));
 
 app.get("/cancelled", function (req, res, next) {
@@ -204,7 +190,6 @@ app.get("/commands", function (req, res, next) {
 });
 
 app.get("/twitch", function (req, res, next) {
-  //call the other api with the data
   const bot_id = req.signedCookies.bot_id;
   if (bot_id) {
     const rally_data = JSON.parse(bot_cache.get(bot_id));
@@ -213,7 +198,6 @@ app.get("/twitch", function (req, res, next) {
   if (rally_data.is_creator == "true") {
     res.sendFile('public/creator.html', { root: __dirname });
   }
-
   res.sendFile('public/twitch.html', { root: __dirname })
 })
 
@@ -282,13 +266,12 @@ app.get("/auth", async function (req, res, next) {
     }
   }
   catch (err) {
-
+    console.log(err);
   }
 })
 
 app.get("/auth/rally", async function (req, res, next) {
   console.log("twitch-complete");
-
   try {
     const state = crypto.randomBytes(10).toString('hex');
     const url_response = await authorize(state);
@@ -297,36 +280,15 @@ app.get("/auth/rally", async function (req, res, next) {
   } catch (err) {
     res.redirect("/public/error")
   }
-
-
-
-
-
 })
 
-app.get("/wukiworld", async function (req, res, next) {
-  // console.log("twitch-complete");
-  // const state = crypto.randomBytes(10).toString('hex');
-
-  // const url_response = await hodlers();
-  // console.log(url_response);
-  // var i = 0;
-  // var notes = "Top 100 <br />";
-  // url_response.topHolders.forEach(holders => {
-  //   i++
-  //   notes += `${i} ${holders.username} <br />`
-  // })
-  // res.send(notes);
-})
-
-app.post("/webhooks", function (req, res, next) {
-
-  console.log(req);
+app.post("/webhooks", function (req, res, next) { 
+  // for sending alerts if needed 
   res.send();
 })
 
 app.get("/price", function (req, res, next) {
-
+ // future implementation
 })
 
 
@@ -338,39 +300,27 @@ getClient().then(async (result) => {
   client = await getClient();
   client.connect();
   let airdrop_queue = {}
-
   client.on('message', async (channel, tags, message, self) => {
     if (self) {
       return;
     }
-
-    // var bots = JSON.parse(bot_cache.get(`${channel}_bots`));
-    // if(bots.includes(tags.username)){
-    //   return;
-    // }
-
     if (channel != tags['username'] && tags.username.toLowerCase() != "rallytwitchbot" && !message.startsWith("$")) {
       if (airdrop_queue[channel]) {
         if (airdrop_queue[channel].includes(tags['username'])) {
           for (var i = 0; i < airdrop_queue[channel].length; i++) {
-
             if (airdrop_queue[channel][i] == tags['username']) {
-
               airdrop_queue[channel].splice(i, 1);
             }
-
           }
         }
         airdrop_queue[channel].push(tags['username']);
         if (airdrop_queue[channel].length > 50) {
           airdrop_queue[channel].shift();
         }
-
       } else {
         airdrop_queue[channel] = []
         airdrop_queue[channel].push(tags['username'])
       }
-      //console.log(airdrop_queue[channel])
     }
 
     if(!message.startsWith("$")){
@@ -408,9 +358,6 @@ getClient().then(async (result) => {
     }
 
     if (command == "$airdrop") {
-      // if(tags.username.toLowerCase() == "punjistick"){
-      //   client.say(channel, airdrop_queue[channel].join(", "));
-      // }
       airdrop(channel, tags, args, client, airdrop_queue[channel], coin_list);
     }
 

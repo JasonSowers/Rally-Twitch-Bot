@@ -5,8 +5,7 @@ const axios = require("axios");
 
 const getClient = async () => {
     let client;
-    twitch_channels = await getCreators()
-
+    twitch_channels = await getCreators();
     client = new tmi.Client({
         options: { debug: true },
         connection: {
@@ -19,7 +18,6 @@ const getClient = async () => {
         },
         channels: twitch_channels
     });
-
     return client;
 }
 
@@ -27,6 +25,7 @@ const addBot = async (channel, bot_list) => {
     const bots = await insertBot(bot_list, channel);
     return bots;
 }
+
 const airdrop = async (channel, tags, args, client, airdrop_queue, coin_list) => {
     let amount;
     let rain_number;
@@ -43,16 +42,15 @@ const airdrop = async (channel, tags, args, client, airdrop_queue, coin_list) =>
 
     console.log("remove airdropper:" + airdrop_queue.join(", "));
     var bots = await getBotsByChannel(channel);
-    if(bots && bots.length > 0){
-       for(var b=0; b < bots.length; b++){
-        if (airdrop_queue.includes(bots[b].toLowerCase())) {
-            airdrop_queue = airdrop_queue.filter(bot =>
-                bot != bots[b]
-            )
+    if (bots && bots.length > 0) {
+        for (var b = 0; b < bots.length; b++) {
+            if (airdrop_queue.includes(bots[b].toLowerCase())) {
+                airdrop_queue = airdrop_queue.filter(bot =>
+                    bot != bots[b]
+                )
+            }
         }
-       } 
     }
-    console.log("remove bots:" + airdrop_queue.join(", "));
 
     if (args[0]) {
         amount = Number(args[0]);
@@ -60,6 +58,7 @@ const airdrop = async (channel, tags, args, client, airdrop_queue, coin_list) =>
             client.say(channel, `@${tags["username"]} invalid amount`);
         }
     }
+
     else {
         client.say(channel, `@${tags["username"]} the command was not given correctly`);
         return;
@@ -71,15 +70,13 @@ const airdrop = async (channel, tags, args, client, airdrop_queue, coin_list) =>
         if (rain_number <= 0) {
             client.say(channel, `@${tags["username"]} the number of people you are trying to rain on is not valid`);
         }
-    }
-    else {
+    }else {
         client.say(channel, `@${tags["username"]} the number of people you are trying to rain on is not valid`);
         return;
     }
 
     if (args[1].replace("$", "") && coin_list.includes(args[1].toUpperCase())) {
         coin = args[1].replace("$", "").toUpperCase();
-
     } else {
         client.say(channel, `@${tags["username"]} invalid coin`);
         return;
@@ -95,14 +92,12 @@ const airdrop = async (channel, tags, args, client, airdrop_queue, coin_list) =>
     if (args[3] && args[3].toLowerCase() == "usd") {
         usd = args[3];
     }
+
     if (has_funds) {
         var airdropped_crew = []
         try {
             var twitch_ids = await getTwitchIds(airdrop_queue);
-            console.log("twitch ids:" + twitch_ids.join(", "));
-            var registeredUserList = await makeRegisteredUserList(twitch_ids, sender_id)
-
-            console.log("registered ids:" + registeredUserList.join(", "));
+            var registeredUserList = await makeRegisteredUserList(twitch_ids, sender_id);
             registeredUserList.forEach(us => {
                 console.log(JSON.stringify(us));
             })
@@ -114,11 +109,11 @@ const airdrop = async (channel, tags, args, client, airdrop_queue, coin_list) =>
                 number = registeredUserList.length;
             }
 
-            if(number > 10){
+            if (number > 10) {
                 number = 10
             }
 
-            if(number == 0){
+            if (number == 0) {
                 client.say(channel, `@${tags.username} There is no registered chatters in the airdrop queue`);
             }
             amount = amount / number
@@ -129,9 +124,7 @@ const airdrop = async (channel, tags, args, client, airdrop_queue, coin_list) =>
             if (usd) {
                 input = "USD"
             }
-            console.log("rain on number: " + number);
-            console.log("rain on amount: " + amount);
-            
+
             for (var j = 0; j < number; j++) {
                 let body = {};
                 body.referenceData = "Sent via RallyTwitchBot";
@@ -142,16 +135,15 @@ const airdrop = async (channel, tags, args, client, airdrop_queue, coin_list) =>
                 body.toRnbUserId = registeredUserList[j].rally_id;
                 const tx_response = await initiate_tx(body);
                 airdropped_crew.push(registeredUserList[j].twitch_username)
-                console.log(registeredUserList[j]);
-               
             }
-             client.say(channel, `@${tags.username} just airdropped on @${airdropped_crew.join(", @")}`);
-            //console.log(tx_response);
+            client.say(channel, `@${tags.username} just airdropped on @${airdropped_crew.join(", @")}`);
         } catch (err) {
             console.log(err);
             client.say(channel, `@${tags.username} failed, something went wrong`);
         }
 
+    }else{
+        client.say(channel, `@${tags.username} failed, check your wallet`);
     }
 
 
@@ -186,7 +178,7 @@ const donate = async (tags, args, client, coin_list, channel) => {
         client.say(channel, `@${tags["username"]} something went wrong, please register at https://twitchrallybot.com if you haven't already`);
         return;
     }
-    if(!has_funds){
+    if (!has_funds) {
         `@${tags["username"]} check your balance and try again`
         return;
     }
@@ -248,7 +240,7 @@ const tip = async (tags, args, client, coin_list, channel) => {
         return;
     }
 
-    if(!has_funds){
+    if (!has_funds) {
         `@${tags["username"]} check your balance and try again`
         return;
     }
@@ -312,7 +304,6 @@ const getSenderRallyId = async (tags) => {
         sender_id = sender.rally_id._;
         return sender_id;
     } catch (err) {
-        //user not registered error
         client.whisper(tags.username, "You may not be registered, please visit https://rallytwitchbot.com to register");
         return;
     }
@@ -352,7 +343,6 @@ const getTwitchIds = async (user_list) => {
 }
 
 const makeRegisteredUserList = async (user_list, sender_id) => {
-
     const creators = await getCreatorsTwitchIds();
     let rally_ids = [];
     for (var u = 0; u < user_list.length; u++) {
@@ -363,25 +353,19 @@ const makeRegisteredUserList = async (user_list, sender_id) => {
             }
             try {
                 const receiver = await getUserByTwitchId(user_list[u], user_type);
-                if(receiver){
+                if (receiver) {
                     rally_ids.push({
-                        rally_id:receiver.rally_id._,
-                        twitch_username:receiver.twitch_username._
+                        rally_id: receiver.rally_id._,
+                        twitch_username: receiver.twitch_username._
                     });
-                }                
-
+                }
             } catch (err) {
                 console.log(err);
             }
         }
-
     }
-
-
     return rally_ids;
 }
-
-
 
 module.exports = {
     airdrop,
