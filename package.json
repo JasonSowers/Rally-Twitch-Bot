@@ -1,0 +1,31 @@
+{
+  "name": "rally-bot",
+  "version": "0.0.0",
+  "main": "app.js",
+  "private": true,
+  "scripts": {},
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.3.0",
+    "@aws-sdk/lib-dynamodb": "^3.3.0",
+    "@aws-sdk/node-http-handler": "^3.3.0",
+    "@aws-sdk/types": "^3.3.0",
+    "axios": "^0.21.1",
+    "azure-storage": "^2.10.4",
+    "azure-table-storage-async": "^1.3.0",
+    "cookie-parser": "~1.4.4",
+    "cors": "^2.8.5",
+    "debug": "~2.6.9",
+    "dotenv": "^10.0.0",
+    "express": "~4.16.1",
+    "express-session": "^1.17.2",
+    "morgan": "~1.9.1",
+    "node-cache": "^5.1.2",
+    "node-fetch": "^2.6.1",
+    "passport": "^0.4.1",
+    "passport-oauth": "^1.0.0",
+    "request": "^2.88.2",
+    "socket.io": "^4.1.3",
+    "tmi.js": "^1.8.3",
+    "uuid": "^3.4.0"
+  }
+}
