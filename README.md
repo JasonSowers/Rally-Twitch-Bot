@@ -31,6 +31,9 @@ The application is fairly simple.  There is a few moving parts and external api 
 - Azure App Service - Server host for: Web site, Bot, API, and clients for 3rd party services 
 
 #### Internal Components
+
+**Note:** There is much room for improvement here.
+
 - app.js
   - contains the server code for the website
   - contains the command detection code for bot commands
