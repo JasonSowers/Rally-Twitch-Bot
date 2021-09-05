@@ -1,0 +1,4 @@
+{
+    "appService.defaultWebAppToDeploy": "/subscriptions/c9be4fa3-078e-46f8-808e-433cf8c9798b/resourceGroups/rallytwitchbot/providers/Microsoft.Web/sites/rallytwitchbot",
+    "appService.deploySubpath": "."
+}
