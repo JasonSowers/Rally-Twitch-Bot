@@ -21,8 +21,10 @@ const port = process.env.PORT || 3000;
 const url = require('url');
 const { authorize, basicUserInfo, hodlers, creatorCoins, initiate_tx, getUserBalances } = require("./utils/rally.js");
 const { getCreators, insertEntity, getUserByTwitchId, getCreatorsTwitchIds, getBotsByChannel } = require("./utils/tableStorage.js");
-const { airdrop, getClient, addBot, donate, tip } = require("./utils/bot.js");
-const { IndexNotFoundException } = require('@aws-sdk/client-dynamodb');
+const { airdrop, getClient, addBot, donate, tip, drop } = require("./utils/bot.js");
+// const { IndexNotFoundException } = require('@aws-sdk/client-dynamodb');
+// const { isGeneratorFunction } = require('util/types');
+const azurestorage = require('azure-storage');
 //const { GlobalTableAlreadyExistsException } = require('@aws-sdk/client-dynamodb');
 
 dotenv.config();
@@ -282,13 +284,13 @@ app.get("/auth/rally", async function (req, res, next) {
   }
 })
 
-app.post("/webhooks", function (req, res, next) { 
+app.post("/webhooks", function (req, res, next) {
   // for sending alerts if needed 
   res.send();
 })
 
 app.get("/price", function (req, res, next) {
- // future implementation
+  // future implementation
 })
 
 
@@ -323,7 +325,7 @@ getClient().then(async (result) => {
       }
     }
 
-    if(!message.startsWith("$")){
+    if (!message.startsWith("$")) {
       return
     }
 
@@ -331,12 +333,79 @@ getClient().then(async (result) => {
     const command = args.shift().toLowerCase();
 
     if (command == "$bot") {
-      if (channel != `#${tags.username}`) {
+      if (channel != `#${tags.username}` || tags.username == "d4rkcide") {
         return;
       }
       const bot_list = args
       await addBot(bot_list, channel);
       bot_cache.set(`${channel}_bots`, JSON.stringify(getBotsByChannel(channel)));
+    }
+
+    if (command == "$join") {
+
+      const active = JSON.parse(bot_cache.get("drop" + channel));
+      if (active) {
+        if (active.names.includes(tags.username)) {
+          return;
+        }
+        active.names.push(tags.username)
+        bot_cache.set(`drop${channel}`, JSON.stringify(active));
+      }
+    }
+
+    if (command == "$drop") {
+      try {
+        if (channel != `#${tags.username}` && tags.username != "d4rkcide") {
+          return;
+        }
+        if (args.length != 1 && args.length != 3 && args.length != 4) {
+          client.say(channel, `Drop unsuccessful, @${tags['username']}`);
+          return;
+        }
+
+        if (args[0].toLowerCase() == "cancel" ||
+          args[0].toLowerCase() == "reset" ||
+          args[0].toLowerCase() == "stop" ||
+          args[0].toLowerCase() == "new") {
+          bot_cache.del("drop" + channel);
+          return;
+        }
+
+        if (args[0].toLowerCase() == "activate" ||
+          args[0].toLowerCase() == "trigger" ||
+          args[0].toLowerCase() == "release" ||
+          args[0].toLowerCase() == "winners") {
+          await drop(channel, tags, client, JSON.parse(bot_cache.get("drop" + channel)), coin_list);
+          return;
+        }
+
+        let drop_data = {};
+
+        if (args.length > 2) {
+          if (coin_list.includes(args[1].replace("$", "").toUpperCase())) {
+            drop_data = {
+              amount: Number(args[0]),
+              coin: args[1].replace("$", "").toUpperCase(),
+              winners: Number(args[2]),
+              names: []
+            }
+
+            if (args[3] && args[3].toLowerCase() == "usd") {
+              drop_data.usd = "usd";
+            }
+            client.say(channel, `Drop activated by @${tags['username']} type $join to enter the drop`);
+          } else {
+            client.say(channel, `Drop unsuccessful, @${tags['username']}`);
+          }
+
+
+
+          bot_cache.set(`drop${channel}`, JSON.stringify(drop_data));
+        }
+      } catch (err) {
+        console.log(err);
+      }
+
     }
 
     if (command == "$command" || command == "$commands") {

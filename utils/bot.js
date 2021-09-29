@@ -3,6 +3,9 @@ const { initiate_tx, getUserBalances } = require("./rally.js");
 const { getCreators, getUserByTwitchId, getCreatorsTwitchIds, insertBot, getBotsByChannel } = require("./tableStorage.js");
 const axios = require("axios");
 
+function getRandomInt(max) {
+    return Math.floor(Math.random() * max);
+}
 const getClient = async () => {
     let client;
     twitch_channels = await getCreators();
@@ -24,6 +27,71 @@ const getClient = async () => {
 const addBot = async (channel, bot_list) => {
     const bots = await insertBot(bot_list, channel);
     return bots;
+}
+
+const drop = async (channel, tags,client, drop_data, coin_list) => {
+    const sender_rally_id = await getSenderRallyId(tags);
+    let amount = drop_data.amount;
+    let holding = await check_holdings(drop_data.amount, sender_rally_id, drop_data.coin);
+    if (holding) {
+        //do the stuff
+        const twitch_id_list = await getTwitchIds(drop_data.names);
+
+        //get rally ids
+        const registered_users = await makeRegisteredUserList(twitch_id_list, tags.userId)
+        let number_of_winners = 0;
+        let used_numbers = []
+        let winners = []
+
+        if (drop_data.winners <= registered_users.length) {
+            number_of_winners = drop_data.winners;
+        } else {
+            number_of_winners = registered_users.length;
+        }
+
+        for (var i = 0; i < number_of_winners; i++) {
+            let random = getRandomInt(registered_users.length);
+            while (used_numbers.includes(random)) {
+                random = getRandomInt(registered_users.length);
+            }
+            const winner = registered_users[random];
+            winners.push(winner);
+            used_numbers.push(random)
+        }
+
+        amount = amount / number_of_winners
+        amount = amount.toFixed(8);
+
+        var input = "COINS"
+        if (drop_data.usd) {
+            input = "USD"
+        }
+
+        // send monies
+        var dropped_crew = [];
+        try {            
+            for (var j = 0; j < number_of_winners; j++) {
+                let body = {};
+                body.referenceData = "Sent via RallyTwitchBot";
+                body.fromRnbUserId = sender_id;
+                body.amount = amount;
+                body.coinKind = drop_data.coin;
+                body.inputType = input;
+                body.toRnbUserId = winners[j].rally_id;
+                const tx_response = await initiate_tx(body);
+                dropped_crew.push(winners[j].twitch_username)
+            }
+            client.say(channel, `@${tags.username} just dropped on @${dropped_crew.join(", @")}`);
+        } catch (err) {
+            console.log(err);
+            client.say(channel, ` Drop unsuccessful, @${tags["username"]}`);
+        }
+    } else {
+        client.say(channel, ` Drop unsuccessful, @${tags["username"]}`);
+        return;
+    }
+
+
 }
 
 const airdrop = async (channel, tags, args, client, airdrop_queue, coin_list) => {
@@ -70,7 +138,7 @@ const airdrop = async (channel, tags, args, client, airdrop_queue, coin_list) =>
         if (rain_number <= 0) {
             client.say(channel, `@${tags["username"]} the number of people you are trying to rain on is not valid`);
         }
-    }else {
+    } else {
         client.say(channel, `@${tags["username"]} the number of people you are trying to rain on is not valid`);
         return;
     }
@@ -86,7 +154,7 @@ const airdrop = async (channel, tags, args, client, airdrop_queue, coin_list) =>
     if (sender_id) {
         has_funds = await check_holdings(amount, sender_id, coin);
     } else {
-        client.say(channel, `@${tags["username"]} please register at https://twitchrallybot.com`);
+        client.say(channel, `@${tags["username"]} please register at https://rallytwitchbot.com`);
     }
 
     if (args[3] && args[3].toLowerCase() == "usd") {
@@ -142,7 +210,7 @@ const airdrop = async (channel, tags, args, client, airdrop_queue, coin_list) =>
             client.say(channel, `@${tags.username} failed, something went wrong`);
         }
 
-    }else{
+    } else {
         client.say(channel, `@${tags.username} failed, check your wallet`);
     }
 
@@ -175,7 +243,7 @@ const donate = async (tags, args, client, coin_list, channel) => {
     if (sender_id) {
         has_funds = await check_holdings(amount, sender_id, coin);
     } else {
-        client.say(channel, `@${tags["username"]} something went wrong, please register at https://twitchrallybot.com if you haven't already`);
+        client.say(channel, `@${tags["username"]} something went wrong, please register at https://rallytwitchbot.com if you haven't already`);
         return;
     }
     if (!has_funds) {
@@ -236,7 +304,7 @@ const tip = async (tags, args, client, coin_list, channel) => {
     if (sender_id) {
         has_funds = await check_holdings(amount, sender_id, coin);
     } else {
-        client.say(channel, `@${tags["username"]} something went wrong, please register at https://twitchrallybot.com if you haven't already`);
+        client.say(channel, `@${tags["username"]} something went wrong, please register at https://rallytwitchbot.com if you haven't already`);
         return;
     }
 
@@ -372,5 +440,6 @@ module.exports = {
     getClient,
     addBot,
     donate,
-    tip
+    tip,
+    drop
 }
